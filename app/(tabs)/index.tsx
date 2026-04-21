@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -10,6 +10,8 @@ import { Colors, Spacing, FontSize, FontWeight, BorderRadius } from '@/constants
 import { Config } from '@/constants/Config';
 import { useAuth } from '@/context/AuthContext';
 import { getTodayString, getGreeting, formatDate } from '@/utils/helpers';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SkeletonCard, SkeletonText } from '@/components/SkeletonLoader';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -52,8 +54,21 @@ export default function HomeScreen() {
     return todayLogs?.some((log) => log.habitId === habitId && log.isDone) ?? false;
   };
 
+  const [habitAnims] = useState<Record<string, Animated.Value>>({});
+
   const handleToggle = async (habitId: Id<'habits'>) => {
     if (!user) return;
+    
+    // Scale animation
+    if (!habitAnims[habitId]) {
+      habitAnims[habitId] = new Animated.Value(1);
+    }
+    
+    Animated.sequence([
+      Animated.spring(habitAnims[habitId], { toValue: 0.95, useNativeDriver: true }),
+      Animated.spring(habitAnims[habitId], { toValue: 1, useNativeDriver: true }),
+    ]).start();
+
     try {
       await toggleHabit({
         habitId,
@@ -72,6 +87,19 @@ export default function HomeScreen() {
   // 🔔 In-app reminder
   const [showReminder, setShowReminder] = useState(false);
   const reminderAnim = useRef(new Animated.Value(-100)).current;
+
+  // Empty state pulse animation
+  const emptyAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (habits && habits.length === 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(emptyAnim, { toValue: 1.08, duration: 1000, useNativeDriver: true }),
+          Animated.timing(emptyAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        ])
+      ).start();
+    }
+  }, [habits]);
 
   useEffect(() => {
     // Show reminder if user has habits but hasn't completed them all
@@ -102,11 +130,33 @@ export default function HomeScreen() {
 
   const getReminderMessage = () => {
     if (completedToday === 0) {
-      return 'Belum ada habit yang selesai hari ini. Yuk mulai satu langkah kecil! 🌱';
+      return 'Belum ada habit yang selesai hari ini. Yuk mulai satu langkah kecil!';
     }
     const remaining = totalHabits - completedToday;
-    return `Tinggal ${remaining} habit lagi! Kamu sudah di jalur yang tepat 💪`;
+    return `Tinggal ${remaining} habit lagi! Kamu sudah di jalur yang tepat`;
   };
+
+  // Loading UI
+  if (habits === undefined) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.scrollContent}>
+          <SkeletonText width={120} style={{ marginBottom: 10 }} />
+          <SkeletonText width={200} style={{ marginBottom: 30 }} />
+          <View style={styles.statsRow}>
+            <SkeletonCard style={{ flex: 1, height: 100 }} />
+            <SkeletonCard style={{ flex: 1, height: 100 }} />
+            <SkeletonCard style={{ flex: 1, height: 100 }} />
+          </View>
+          <SkeletonCard style={{ height: 120, marginVertical: 20 }} />
+          <SkeletonText width={150} style={{ marginBottom: 20 }} />
+          <SkeletonCard style={{ marginBottom: 12 }} />
+          <SkeletonCard style={{ marginBottom: 12 }} />
+          <SkeletonCard style={{ marginBottom: 12 }} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -117,15 +167,17 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>{greeting} 👋</Text>
-            <Text style={styles.name}>{user?.name ?? 'User'}</Text>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={[styles.name, (user?.name?.length ?? 0) > 15 && { color: Colors.primary }]}>
+              {user?.name ?? 'User'}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.coachButton}
             onPress={() => router.push('/ai-coach')}
             activeOpacity={0.7}
           >
-            <Text style={styles.coachEmoji}>🤖</Text>
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -140,7 +192,7 @@ export default function HomeScreen() {
               { transform: [{ translateY: reminderAnim }] },
             ]}
           >
-            <Text style={styles.reminderIcon}>🔔</Text>
+            <Ionicons name="notifications-outline" size={18} color={Colors.textMuted} />
             <Text style={styles.reminderText}>{getReminderMessage()}</Text>
             <TouchableOpacity
               onPress={dismissReminder}
@@ -153,26 +205,23 @@ export default function HomeScreen() {
 
         {/* Quick Stats */}
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: Colors.primaryFaded }]}>
-            <Text style={styles.statEmoji}>🔥</Text>
+          <View style={[styles.statCard, { borderColor: 'rgba(52,211,153,0.4)', borderWidth: 1 }]}>
+            <Ionicons name="checkmark-done-outline" size={20} color={Colors.primary} />
+            <Ionicons name="checkmark-done" size={60} color={Colors.primary} style={styles.cardBgIcon} />
             <Text style={styles.statValue}>
               {completedToday}
             </Text>
             <Text style={styles.statLabel}>Selesai</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: Colors.secondaryFaded }]}>
-            <Text style={styles.statEmoji}>✅</Text>
+          <View style={[styles.statCard, { borderColor: 'rgba(96,165,250,0.4)', borderWidth: 1 }]}>
+            <Ionicons name="today-outline" size={20} color={Colors.secondary} />
             <Text style={styles.statValue}>
               {completedToday}/{totalHabits}
             </Text>
             <Text style={styles.statLabel}>Hari Ini</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-            <Text style={styles.statEmoji}>
-              {todayMood
-                ? Config.MOOD_EMOJIS[todayMood.mood - 1]
-                : '😐'}
-            </Text>
+          <View style={[styles.statCard, { borderColor: 'rgba(245,158,11,0.4)', borderWidth: 1 }]}>
+            <Ionicons name="happy-outline" size={20} color={Colors.warning} />
             <Text style={styles.statValue}>
               {todayMood
                 ? Config.MOOD_LABELS[todayMood.mood - 1]
@@ -192,7 +241,10 @@ export default function HomeScreen() {
               </Text>
             </View>
             <View style={styles.progressBarBg}>
-              <View
+              <LinearGradient
+                colors={['#34D399', '#60A5FA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={[
                   styles.progressBarFill,
                   {
@@ -203,7 +255,7 @@ export default function HomeScreen() {
             </View>
             {completedToday === totalHabits && totalHabits > 0 && (
               <Text style={styles.progressComplete}>
-                🎉 Semua habit selesai! Kerja bagus!
+                Luar biasa! Semua habit selesai.
               </Text>
             )}
           </View>
@@ -228,7 +280,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/add-habit')}
               activeOpacity={0.7}
             >
-              <Text style={styles.emptyEmoji}>📋</Text>
+              <Animated.Text style={[styles.emptyEmoji, { transform: [{ scale: emptyAnim }] }]}>📋</Animated.Text>
               <Text style={styles.emptyText}>Belum ada habit.</Text>
               <Text style={styles.emptySubtext}>Tap untuk menambahkan!</Text>
             </TouchableOpacity>
@@ -239,64 +291,66 @@ export default function HomeScreen() {
             <View style={styles.habitList}>
               {todayHabits.slice(0, 5).map((habit) => {
                 const done = isHabitDone(habit._id);
+                if (!habitAnims[habit._id]) habitAnims[habit._id] = new Animated.Value(1);
+                
                 return (
-                  <TouchableOpacity
-                    key={habit._id}
-                    style={[styles.habitItem, done && styles.habitItemDone]}
-                    onPress={() => handleToggle(habit._id)}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.habitCheckbox,
-                        done && {
-                          backgroundColor: habit.color,
-                          borderColor: habit.color,
-                        },
-                      ]}
+                  <Animated.View key={habit._id} style={{ transform: [{ scale: habitAnims[habit._id] }] }}>
+                    <TouchableOpacity
+                      style={[styles.habitItem, done && styles.habitItemDone]}
+                      onPress={() => handleToggle(habit._id)}
+                      activeOpacity={0.7}
                     >
-                      {done && (
-                        <Ionicons name="checkmark" size={14} color={Colors.white} />
-                      )}
-                    </View>
-                    <Text
-                      style={[
-                        styles.habitTitle,
-                        done && styles.habitTitleDone,
-                      ]}
-                    >
-                      {habit.title}
-                    </Text>
-                    {done && <Text style={styles.doneEmoji}>✨</Text>}
-                  </TouchableOpacity>
+                      <View
+                        style={[
+                          styles.habitCheckbox,
+                          done && {
+                            backgroundColor: habit.color,
+                            borderColor: habit.color,
+                            shadowColor: habit.color,
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4,
+                            elevation: 3,
+                          },
+                        ]}
+                      >
+                        {done && (
+                          <Ionicons name="checkmark" size={14} color={Colors.white} />
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.habitTitle,
+                          done && styles.habitTitleDone,
+                        ]}
+                      >
+                        {habit.title}
+                      </Text>
+                      {done && <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />}
+                    </TouchableOpacity>
+                  </Animated.View>
                 );
               })}
-              {todayHabits.length > 5 && (
-                <TouchableOpacity
-                  style={styles.moreButton}
-                  onPress={() => router.push('/(tabs)/habits')}
-                >
-                  <Text style={styles.moreText}>
-                    +{todayHabits.length - 5} lainnya
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
           )}
         </View>
 
         {/* AI Coach Tip */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💡 Tips Wellness</Text>
+          <View style={styles.aiTitleRow}>
+            <Ionicons name="sparkles-outline" size={16} color={Colors.primary} />
+            <Text style={styles.sectionTitle}>Wellness Spark</Text>
+          </View>
           <View style={styles.aiCard}>
+            <Text style={{ position:'absolute', right:12, top:10, fontSize:18, opacity:0.5 }}>🤖</Text>
             <Text style={styles.aiText}>
               {completedToday === 0 && totalHabits > 0
-                ? 'Mulai hari ini dengan menyelesaikan satu habit kecil. Langkah kecil membawa perubahan besar! 🌟'
+                ? 'Mulai hari ini dengan menyelesaikan satu habit kecil. Langkah kecil membawa perubahan besar!'
                 : completedToday === totalHabits && totalHabits > 0
-                ? 'Kerja bagus! Semua habit hari ini sudah selesai. Tetap konsisten dan jaga momentummu! 💪'
+                ? 'Kerja bagus! Semua habit hari ini sudah selesai. Tetap konsisten dan jaga momentummu!'
                 : totalHabits === 0
-                ? 'Mulai dengan 1-2 kebiasaan sederhana. Konsistensi lebih penting daripada jumlah! 🎯'
-                : `Sudah ${completedToday} dari ${totalHabits} habit selesai. Lanjutkan, kamu hampir berhasil! 🚀`}
+                ? 'Mulai dengan 1-2 kebiasaan sederhana. Konsistensi lebih penting daripada jumlah!'
+                : `Sudah ${completedToday} dari ${totalHabits} habit selesai. Lanjutkan, kamu hampir berhasil!`}
             </Text>
           </View>
         </View>
@@ -321,29 +375,27 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   greeting: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize.md,
     color: Colors.textSecondary,
     fontWeight: FontWeight.medium,
   },
   name: {
-    fontSize: FontSize.hero,
+    fontSize: FontSize.xxl,
     color: Colors.text,
     fontWeight: FontWeight.bold,
-    marginTop: Spacing.xs,
+    marginTop: 2,
   },
   coachButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.backgroundCard,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(52,211,153,0.1)',
+    borderColor: 'rgba(52,211,153,0.3)',
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
-  coachEmoji: {
-    fontSize: 24,
-  },
+
   dateText: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
@@ -359,15 +411,21 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     alignItems: 'center',
+    backgroundColor: Colors.backgroundCard,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  statEmoji: {
-    fontSize: 24,
-    marginBottom: Spacing.xs,
+  cardBgIcon: {
+    position: 'absolute',
+    right: -10,
+    bottom: -10,
+    opacity: 0.05,
   },
   statValue: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
     color: Colors.text,
+    marginTop: 4,
   },
   statLabel: {
     fontSize: FontSize.xs,
@@ -377,10 +435,10 @@ const styles = StyleSheet.create({
   progressCard: {
     backgroundColor: Colors.backgroundCard,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.lg,
     marginBottom: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderLeftWidth: 3,
+    borderLeftColor: '#34D399',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -393,25 +451,24 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.medium,
   },
   progressPercent: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.primary,
     fontWeight: FontWeight.bold,
   },
   progressBarBg: {
-    height: 10,
-    backgroundColor: Colors.backgroundInput,
-    borderRadius: 5,
+    height: 12,
+    backgroundColor: '#1F2937',
+    borderRadius: 6,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: 5,
+    borderRadius: 6,
   },
   progressComplete: {
     fontSize: FontSize.sm,
     color: Colors.primary,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.semibold,
     textAlign: 'center',
     marginTop: Spacing.sm,
   },
@@ -422,22 +479,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  aiTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
   sectionTitle: {
     fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
     color: Colors.text,
-    marginBottom: Spacing.sm,
   },
   seeAllText: {
     fontSize: FontSize.sm,
-    color: Colors.primary,
-    fontWeight: FontWeight.medium,
-    marginBottom: Spacing.sm,
+    color: '#34D399',
+    fontWeight: FontWeight.semibold,
   },
   emptyCard: {
-    backgroundColor: Colors.backgroundCard,
+    backgroundColor: 'rgba(52,211,153,0.05)',
     borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
     alignItems: 'center',
@@ -446,13 +507,14 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   emptyEmoji: {
-    fontSize: 40,
-    marginBottom: Spacing.sm,
+    fontSize: 48,
+    marginBottom: 10,
   },
   emptyText: {
     fontSize: FontSize.md,
     color: Colors.text,
     fontWeight: FontWeight.medium,
+    marginTop: Spacing.sm,
   },
   emptySubtext: {
     fontSize: FontSize.sm,
@@ -460,7 +522,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   habitList: {
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   habitItem: {
     flexDirection: 'row',
@@ -468,17 +530,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundCard,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    marginBottom: 2,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
   habitItemDone: {
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
-    borderColor: Colors.primaryFaded,
+    backgroundColor: 'rgba(52,211,153,0.08)',
+    borderColor: 'rgba(52,211,153,0.3)',
   },
   habitCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: Colors.border,
     justifyContent: 'center',
@@ -493,51 +556,39 @@ const styles = StyleSheet.create({
   },
   habitTitleDone: {
     textDecorationLine: 'line-through',
-    color: Colors.textSecondary,
-  },
-  doneEmoji: {
-    fontSize: 16,
-    marginLeft: Spacing.sm,
-  },
-  moreButton: {
-    alignItems: 'center',
-    padding: Spacing.sm,
-  },
-  moreText: {
-    fontSize: FontSize.sm,
-    color: Colors.primary,
-    fontWeight: FontWeight.medium,
+    color: Colors.textMuted,
   },
   aiCard: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: Colors.backgroundCard,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.25)',
   },
   aiText: {
     fontSize: FontSize.sm,
-    color: Colors.text,
+    color: Colors.textSecondary,
     lineHeight: 22,
+    fontWeight: FontWeight.medium,
   },
   reminderBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    backgroundColor: Colors.backgroundElevated,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
-    borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
     gap: Spacing.sm,
-  },
-  reminderIcon: {
-    fontSize: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   reminderText: {
     flex: 1,
     fontSize: FontSize.sm,
-    color: Colors.text,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.medium,
     lineHeight: 20,
   },
 });
+
+

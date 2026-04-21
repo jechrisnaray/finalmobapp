@@ -10,6 +10,7 @@ import {
   NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius } from '@/constants/Colors';
@@ -20,7 +21,7 @@ const ONBOARDING_KEY = 'healthysteps_onboarding_done';
 
 interface Slide {
   id: string;
-  emoji: string;
+  icon: any;
   title: string;
   description: string;
   color: string;
@@ -29,7 +30,7 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     id: '1',
-    emoji: '🌿',
+    icon: 'leaf-outline',
     title: 'Selamat Datang di\nHealthySteps',
     description:
       'Bangun kebiasaan sehat, satu langkah pada satu waktu. Lacak habit harianmu dan lihat progressmu berkembang!',
@@ -37,7 +38,7 @@ const SLIDES: Slide[] = [
   },
   {
     id: '2',
-    emoji: '📊',
+    icon: 'bar-chart-outline',
     title: 'Lacak Mood &\nKebiasaanmu',
     description:
       'Catat mood harianmu, tandai habit yang diselesaikan, dan lihat streak konsistensimu. Semua data dipersonalisasi untukmu.',
@@ -45,11 +46,11 @@ const SLIDES: Slide[] = [
   },
   {
     id: '3',
-    emoji: '🤖',
+    icon: 'chatbubble-ellipses-outline',
     title: 'AI Coach\nSiap Membantumu',
     description:
       'Dapatkan saran personal dari AI Coach berdasarkan habit dan moodmu. Tips wellness yang relevan, kapan saja kamu butuhkan.',
-    color: Colors.accent,
+    color: Colors.primary,
   },
 ];
 
@@ -82,8 +83,8 @@ export default function OnboardingScreen() {
 
   const renderSlide = ({ item }: { item: Slide }) => (
     <View style={[styles.slide, { width }]}>
-      <View style={[styles.emojiCircle, { backgroundColor: `${item.color}20` }]}>
-        <Text style={styles.emoji}>{item.emoji}</Text>
+      <View style={[styles.iconCircle, { shadowColor: item.color }]}>
+        <Ionicons name={item.icon} size={56} color={item.color} />
       </View>
       <Text style={styles.slideTitle}>{item.title}</Text>
       <Text style={styles.slideDescription}>{item.description}</Text>
@@ -140,7 +141,7 @@ export default function OnboardingScreen() {
           activeOpacity={0.8}
         >
           <Text style={styles.nextButtonText}>
-            {isLast ? 'Mulai Sekarang 🚀' : 'Lanjut'}
+            {isLast ? 'Mulai Sekarang' : 'Lanjut'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -158,13 +159,18 @@ const styles = StyleSheet.create({
     top: 60,
     right: Spacing.lg,
     zIndex: 10,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   skipText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    fontWeight: FontWeight.medium,
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontWeight: FontWeight.bold,
+    textTransform: 'uppercase',
   },
   slide: {
     flex: 1,
@@ -172,24 +178,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
   },
-  emojiCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+  iconCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  emoji: {
-    fontSize: 56,
+    marginBottom: Spacing.xxl,
+    backgroundColor: Colors.backgroundCard,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   slideTitle: {
-    fontSize: FontSize.xxl,
+    fontSize: 30,
     fontWeight: FontWeight.bold,
     color: Colors.text,
     textAlign: 'center',
     marginBottom: Spacing.md,
-    lineHeight: 36,
+    lineHeight: 38,
+    letterSpacing: -0.5,
   },
   slideDescription: {
     fontSize: FontSize.md,
@@ -197,39 +204,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: Spacing.md,
+    fontWeight: FontWeight.medium,
   },
   bottomSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xxl,
+    gap: Spacing.xl,
   },
   dotsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.backgroundInput,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.border,
   },
   nextButton: {
     borderRadius: BorderRadius.md,
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
   },
   nextButtonText: {
-    color: Colors.white,
+    color: Colors.background,
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
   },
 });
+
+
 
 export { ONBOARDING_KEY };

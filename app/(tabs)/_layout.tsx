@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, Platform, View } from 'react-native';
 import { Colors, Spacing, FontSize } from '@/constants/Colors';
 
 type TabIconName = 'home' | 'checkmark-circle' | 'happy' | 'person';
@@ -24,8 +24,8 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarActiveTintColor: '#34D399',
+        tabBarInactiveTintColor: '#64748B',
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
@@ -36,10 +36,13 @@ export default function TabsLayout() {
           options={{
             title: tab.title,
             tabBarIcon: ({ focused, color, size }) => (
-              <View style={focused ? styles.activeIconContainer : undefined}>
+              <View style={[
+                styles.iconContainer,
+                focused && styles.activeIconContainer
+              ]}>
                 <Ionicons
                   name={focused ? tab.iconFocused : tab.iconDefault}
-                  size={focused ? 26 : 24}
+                  size={24}
                   color={color}
                 />
               </View>
@@ -53,27 +56,36 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Colors.backgroundLight,
-    borderTopColor: Colors.border,
-    borderTopWidth: 1,
-    height: 70,
-    paddingBottom: Spacing.sm,
+    backgroundColor: '#1A2535',
+    borderTopWidth: 0,
+    height: Platform.OS === 'ios' ? 85 : 70,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
     paddingTop: Spacing.xs,
-    elevation: 8,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    // Modern deep shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 20,
   },
   tabLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
     marginTop: 2,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeIconContainer: {
-    backgroundColor: Colors.primaryFaded,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(52, 211, 153, 0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.3)',
   },
 });
+

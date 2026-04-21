@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,14 @@ import { useAuth } from '@/context/AuthContext';
 import { getTodayString, formatDate, getCurrentWeekDates } from '@/utils/helpers';
 
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+interface Habit {
+  _id: Id<'habits'>;
+  title: string;
+  frequency: 'daily' | 'weekly' | 'custom';
+  color: string;
+  customDays?: number[];
+}
 
 export default function HabitsScreen() {
   const { user } = useAuth();
@@ -43,8 +52,8 @@ export default function HabitsScreen() {
   // 📅 Weekly history — logs for the whole week
   const weekDates = getCurrentWeekDates();
   const weekLogs = useQuery(
-    api.habitLogs.getLogsByDate,
-    user ? { userId: user.userId, date: today } : 'skip'
+    api.habitLogs.getLogsByDateRange,
+    user ? { userId: user.userId, startDate: weekDates[0], endDate: weekDates[6] } : 'skip'
   );
 
   const toggleHabit = useMutation(api.habitLogs.toggleHabitLog);
@@ -53,12 +62,9 @@ export default function HabitsScreen() {
   // Filter: hanya tampilkan habit yang dijadwalkan hari ini
   const todayDayIndex = new Date().getDay(); // 0=Minggu, 6=Sabtu
 
-  const isHabitScheduledToday = (habit: {
-    frequency: string;
-    customDays?: number[];
-  }): boolean => {
+  const isHabitScheduledToday = (habit: Habit): boolean => {
     if (habit.frequency === 'daily') return true;
-    if (habit.frequency === 'weekly') return true; // weekly selalu muncul
+    if (habit.frequency === 'weekly') return true; 
     if (habit.frequency === 'custom') {
       return habit.customDays?.includes(todayDayIndex) ?? false;
     }
@@ -67,7 +73,7 @@ export default function HabitsScreen() {
 
   const todayHabits = showAll
     ? habits
-    : habits?.filter(isHabitScheduledToday);
+    : habits?.filter((h: any) => isHabitScheduledToday(h as Habit));
 
   const isHabitDone = (habitId: Id<'habits'>) => {
     return todayLogs?.some((log) => log.habitId === habitId && log.isDone) ?? false;
@@ -78,7 +84,7 @@ export default function HabitsScreen() {
     try {
       await toggleHabit({ habitId, userId: user.userId, date: today });
     } catch (error) {
-      console.error('Toggle error:', error);
+      Alert.alert('Gagal', 'Terjadi kesalahan saat mengupdate habit.');
     }
   };
 
@@ -95,7 +101,7 @@ export default function HabitsScreen() {
             try {
               await deleteHabit({ habitId });
             } catch (error) {
-              console.error('Delete error:', error);
+              Alert.alert('Gagal', 'Tidak bisa menghapus habit saat ini.');
             }
           },
         },
@@ -107,8 +113,8 @@ export default function HabitsScreen() {
     router.push({ pathname: '/edit-habit', params: { habitId } });
   };
 
-  const completedCount = todayHabits?.filter((h) => isHabitDone(h._id)).length ?? 0;
-  const totalCount = todayHabits?.length ?? 0;
+  const completedCount = (todayHabits as Habit[])?.filter((h) => isHabitDone(h._id)).length ?? 0;
+  const totalCount = (todayHabits as Habit[])?.length ?? 0;
   const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   // Hitung total streak hari ini untuk ditampilkan di header
@@ -133,9 +139,11 @@ export default function HabitsScreen() {
           {/* Best streak badge di header */}
           {bestStreak > 0 && (
             <View style={styles.headerStreakBadge}>
-              <Text style={styles.headerStreakText}>🔥 {bestStreak}</Text>
+              <Ionicons name="flame" size={14} color={'#F59E0B'} />
+              <Text style={styles.headerStreakText}>{bestStreak}</Text>
             </View>
           )}
+
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push('/add-habit')}
@@ -152,26 +160,21 @@ export default function HabitsScreen() {
           <Text style={styles.weekStripTitle}>Minggu Ini</Text>
           <View style={styles.weekDots}>
             {weekDates.map((dateStr) => {
+              const dayLogs = weekLogs?.filter(l => l.date === dateStr && l.isDone);
               const [y, m, d] = dateStr.split('-').map(Number);
               const dateObj = new Date(y, m - 1, d);
               const dayLabel = DAY_LABELS[dateObj.getDay()];
               const isToday = dateStr === today;
-              const isPast = dateStr < today;
-
-              // Check how many habits were done on that date
-              // We only have todayLogs for today, so show dots based on available info
-              const hasDoneToday = isToday && completedCount > 0;
-              const allDoneToday = isToday && completedCount === totalCount && totalCount > 0;
+              
+              const hasDone = (dayLogs?.length ?? 0) > 0;
 
               return (
                 <View key={dateStr} style={styles.weekDotColumn}>
                   <View
                     style={[
                       styles.weekDot,
-                      isToday && allDoneToday && styles.weekDotDone,
-                      isToday && hasDoneToday && !allDoneToday && styles.weekDotPartial,
-                      isToday && !hasDoneToday && styles.weekDotToday,
-                      !isToday && isPast && styles.weekDotPast,
+                      hasDone && styles.weekDotDone,
+                      isToday && !hasDone && styles.weekDotToday,
                     ]}
                   />
                   <Text
@@ -242,7 +245,7 @@ export default function HabitsScreen() {
         {/* Empty State */}
         {habits && habits.length === 0 && (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>🎯</Text>
+            <Ionicons name="checkmark-circle-outline" size={56} color={Colors.textMuted} />
             <Text style={styles.emptyText}>Belum ada habit</Text>
             <Text style={styles.emptySubtext}>
               Tambahkan kebiasaan baik pertamamu!
@@ -258,21 +261,10 @@ export default function HabitsScreen() {
           </View>
         )}
 
-        {/* Today empty (filters hide everything) */}
-        {todayHabits && todayHabits.length === 0 && habits && habits.length > 0 && (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>😌</Text>
-            <Text style={styles.emptyText}>Tidak ada habit hari ini</Text>
-            <Text style={styles.emptySubtext}>
-              Semua habit custom dijadwalkan di hari lain
-            </Text>
-          </View>
-        )}
-
         {/* Habit List */}
         {todayHabits && todayHabits.length > 0 && (
           <View style={styles.habitList}>
-            {todayHabits.map((habit) => {
+            {(todayHabits as Habit[]).map((habit) => {
               const done = isHabitDone(habit._id);
               const streak = streakMap?.[habit._id] ?? 0;
               const isScheduled = isHabitScheduledToday(habit);
@@ -289,7 +281,6 @@ export default function HabitsScreen() {
                   onLongPress={() => handleDelete(habit._id, habit.title)}
                   activeOpacity={0.7}
                 >
-                  {/* Color indicator */}
                   <View
                     style={[
                       styles.habitColorStrip,
@@ -297,7 +288,6 @@ export default function HabitsScreen() {
                     ]}
                   />
 
-                  {/* Checkbox */}
                   <View
                     style={[
                       styles.checkbox,
@@ -309,7 +299,6 @@ export default function HabitsScreen() {
                     )}
                   </View>
 
-                  {/* Habit Info */}
                   <View style={styles.habitInfo}>
                     <Text
                       style={[
@@ -321,12 +310,13 @@ export default function HabitsScreen() {
                     </Text>
                     <View style={styles.habitMeta}>
                       <View style={styles.frequencyBadge}>
+                        <Ionicons name="calendar-outline" size={10} color={Colors.textMuted} />
                         <Text style={styles.frequencyText}>
                           {habit.frequency === 'daily'
-                            ? '📅 Harian'
+                            ? 'Harian'
                             : habit.frequency === 'weekly'
-                              ? '📆 Mingguan'
-                              : `⚙️ ${habit.customDays && habit.customDays.length > 0
+                              ? 'Mingguan'
+                              : `${habit.customDays && habit.customDays.length > 0
                                   ? habit.customDays
                                       .slice()
                                       .sort((a, b) => a - b)
@@ -336,18 +326,18 @@ export default function HabitsScreen() {
                         </Text>
                       </View>
 
-                      {/* 🔥 Streak Badge */}
                       {streak > 0 && (
                         <View style={styles.streakBadge}>
+                          <Ionicons name="flame" size={12} color={'#F59E0B'} />
                           <Text style={styles.streakText}>
-                            🔥 {streak} hari
+                            {streak} hari
                           </Text>
                         </View>
                       )}
+
                     </View>
                   </View>
 
-                  {/* Edit button */}
                   <TouchableOpacity
                     style={styles.editButton}
                     onPress={() => handleEdit(habit._id)}
@@ -357,25 +347,14 @@ export default function HabitsScreen() {
                     <Ionicons name="pencil-outline" size={16} color={Colors.textMuted} />
                   </TouchableOpacity>
 
-                  {/* Done indicator */}
                   {done && (
                     <View style={styles.doneIndicator}>
-                      <Text style={styles.doneEmoji}>✨</Text>
+                      <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
                     </View>
                   )}
                 </TouchableOpacity>
               );
             })}
-          </View>
-        )}
-
-        {/* Tip */}
-        {habits && habits.length > 0 && (
-          <View style={styles.tipCard}>
-            <Text style={styles.tipIcon}>💡</Text>
-            <Text style={styles.tipText}>
-              Tap untuk checklist, tekan lama untuk menghapus, ✏️ untuk edit
-            </Text>
           </View>
         )}
       </ScrollView>
@@ -403,7 +382,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
+    marginTop: 2,
   },
   headerRight: {
     flexDirection: 'row',
@@ -411,14 +390,17 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerStreakBadge: {
-    backgroundColor: 'rgba(251, 146, 60, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   headerStreakText: {
     fontSize: FontSize.sm,
-    color: '#F97316',
+    color: '#F59E0B',
     fontWeight: FontWeight.bold,
   },
   addButton: {
@@ -428,89 +410,80 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  // Week history strip
   weekStrip: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   weekStripTitle: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    fontWeight: FontWeight.medium,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.bold,
     marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   weekDots: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
   },
   weekDotColumn: {
     alignItems: 'center',
     flex: 1,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   weekDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: Colors.backgroundInput,
   },
   weekDotDone: {
     backgroundColor: Colors.primary,
   },
-  weekDotPartial: {
-    backgroundColor: Colors.warning,
-  },
   weekDotToday: {
-    backgroundColor: Colors.backgroundInput,
+    backgroundColor: Colors.transparent,
     borderWidth: 2,
     borderColor: Colors.primary,
-  },
-  weekDotPast: {
-    backgroundColor: Colors.backgroundInput,
   },
   weekDotLabel: {
     fontSize: 10,
     color: Colors.textMuted,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.semibold,
   },
   weekDotLabelToday: {
     color: Colors.primary,
     fontWeight: FontWeight.bold,
   },
-  // Filter toggle
   filterToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xs,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   filterText: {
     fontSize: FontSize.xs,
     color: Colors.primary,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.semibold,
   },
   progressSection: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   progressText: {
     fontSize: FontSize.sm,
@@ -523,54 +496,53 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
   progressBarBg: {
-    height: 8,
+    height: 10,
     backgroundColor: Colors.backgroundInput,
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.primary,
-    borderRadius: 4,
+    borderRadius: 5,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? 85 : 70,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 80,
-  },
-  emptyEmoji: {
-    fontSize: 64,
-    marginBottom: Spacing.md,
+    paddingTop: 60,
   },
   emptyText: {
     fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
     color: Colors.text,
+    marginTop: Spacing.md,
   },
   emptySubtext: {
     fontSize: FontSize.sm,
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
     marginTop: Spacing.xs,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.xxl,
   },
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
     gap: Spacing.sm,
   },
   emptyButtonText: {
     color: Colors.white,
     fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
   },
   habitList: {
     gap: Spacing.sm,
@@ -581,27 +553,24 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundCard,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
     overflow: 'hidden',
   },
   habitCardDone: {
-    borderColor: Colors.primaryFaded,
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    backgroundColor: 'rgba(52, 211, 153, 0.05)',
   },
   habitCardUnscheduled: {
     opacity: 0.5,
   },
   habitColorStrip: {
     width: 4,
-    height: 40,
+    height: 44,
     borderRadius: 2,
-    marginRight: Spacing.sm,
+    marginRight: Spacing.md,
   },
   checkbox: {
     width: 28,
     height: 28,
-    borderRadius: 8,
+    borderRadius: 9,
     borderWidth: 2,
     borderColor: Colors.border,
     justifyContent: 'center',
@@ -613,46 +582,53 @@ const styles = StyleSheet.create({
   },
   habitTitle: {
     fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
     color: Colors.text,
   },
   habitTitleDone: {
     textDecorationLine: 'line-through',
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
+    fontWeight: FontWeight.medium,
   },
   habitMeta: {
     flexDirection: 'row',
-    marginTop: 4,
+    marginTop: 6,
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
     flexWrap: 'wrap',
   },
   frequencyBadge: {
     backgroundColor: Colors.backgroundInput,
     borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   frequencyText: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.medium,
   },
-  // 🔥 Streak styles
   streakBadge: {
-    backgroundColor: 'rgba(251, 146, 60, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   streakText: {
-    fontSize: FontSize.xs,
-    color: '#F97316',
-    fontWeight: FontWeight.semibold,
+    fontSize: 11,
+    color: '#F59E0B',
+    fontWeight: FontWeight.bold,
   },
   editButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: Colors.backgroundInput,
     justifyContent: 'center',
     alignItems: 'center',
@@ -660,25 +636,5 @@ const styles = StyleSheet.create({
   },
   doneIndicator: {
     marginLeft: Spacing.xs,
-  },
-  doneEmoji: {
-    fontSize: 18,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primaryFaded,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.sm,
-    marginTop: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  tipIcon: {
-    fontSize: 16,
-  },
-  tipText: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    flex: 1,
   },
 });

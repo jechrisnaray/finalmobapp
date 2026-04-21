@@ -3,7 +3,7 @@
  */
 
 /**
- * Get today's date as YYYY-MM-DD string (timezone-safe)
+ * Get today's date as YYYY-MM-DD string (local timezone safe)
  */
 export function getTodayString(): string {
   const now = new Date();
@@ -11,22 +11,6 @@ export function getTodayString(): string {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-}
-
-/**
- * Format a date string to readable Indonesian format
- */
-export function formatDate(dateString: string): string {
-  // Parse manual supaya tidak kena timezone shift
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
-  ];
-
-  return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
 }
 
 /**
@@ -41,27 +25,45 @@ export function getGreeting(): string {
 }
 
 /**
- * Get dates for the current week (Mon-Sun) — timezone-safe
+ * Format a date string to readable Indonesian format
+ * Example: 'Senin, 21 April 2026'
+ */
+export function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  
+  return date.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+}
+
+/**
+ * Get dates for the current week (Minggu-Sabtu)
+ * Returns array of 7 string dates 'YYYY-MM-DD'
  */
 export function getCurrentWeekDates(): string[] {
   const today = new Date();
-  const dayOfWeek = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-
+  const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
+  
+  // Calculate Sunday of current week
+  const sunday = new Date(today);
+  sunday.setDate(today.getDate() - dayOfWeek);
+  
   const dates: string[] = [];
   for (let i = 0; i < 7; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    dates.push(`${year}-${month}-${day}`);
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${day}`);
   }
   return dates;
 }
-
-
 
 /**
  * Validate email format

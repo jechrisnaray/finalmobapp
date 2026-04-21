@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius } from '@/constants/Colors';
 import { Config } from '@/constants/Config';
@@ -67,7 +68,9 @@ export default function RegisterScreen() {
         >
           {/* Logo */}
           <View style={styles.logoSection}>
-            <Text style={styles.logoEmoji}>🌿</Text>
+            <View style={styles.logoMark}>
+              <Ionicons name="footsteps-outline" size={32} color={Colors.primary} />
+            </View>
             <Text style={styles.appName}>{Config.APP_NAME}</Text>
           </View>
 
@@ -160,29 +163,36 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xxl,
   },
   logoSection: {
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  logoEmoji: {
-    fontSize: 48,
-    marginBottom: Spacing.xs,
+  logoMark: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+    backgroundColor: Colors.backgroundElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   appName: {
-    fontSize: FontSize.xxl,
+    fontSize: FontSize.xl,
     fontWeight: FontWeight.extrabold,
-    color: Colors.primary,
+    color: Colors.text,
     letterSpacing: -0.5,
   },
   form: {
     backgroundColor: Colors.backgroundCard,
     borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
+    padding: Spacing.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   formTitle: {
     fontSize: FontSize.xl,
@@ -192,33 +202,39 @@ const styles = StyleSheet.create({
   formSubtitle: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.lg,
+    marginTop: 4,
+    marginBottom: Spacing.xl,
+    fontWeight: FontWeight.medium,
   },
   errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.sm,
-    marginBottom: Spacing.md,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
   },
   errorText: {
     color: Colors.error,
     fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium,
   },
   inputGroup: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   label: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    fontSize: 13,
+    fontWeight: FontWeight.bold,
     color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   input: {
     backgroundColor: Colors.backgroundInput,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 14,
+    paddingVertical: 16,
     fontSize: FontSize.md,
     color: Colors.text,
     borderWidth: 1,
@@ -227,26 +243,33 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.md,
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   buttonText: {
-    color: Colors.white,
+    color: Colors.background,
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
   },
   footerText: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
+    fontWeight: FontWeight.medium,
   },
   footerLink: {
     fontSize: FontSize.sm,
@@ -254,3 +277,4 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
 });
+

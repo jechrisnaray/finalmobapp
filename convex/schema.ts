@@ -23,7 +23,7 @@ export default defineSchema({
     customDays: v.optional(v.array(v.number())),
   }).index('by_user', ['userId']),
 
-  habitLogs: defineTable({
+  habit_progress: defineTable({
     habitId: v.id('habits'),
     userId: v.id('users'),
     date: v.string(),
@@ -38,6 +38,21 @@ export default defineSchema({
     note: v.optional(v.string()),
     date: v.string(),
   }).index('by_user_and_date', ['userId', 'date']),
+
+  ai_history: defineTable({
+    userId: v.id('users'),
+    role: v.union(v.literal('user'), v.literal('assistant')),
+    content: v.string(),
+    timestamp: v.number(),
+  }).index('by_user', ['userId']),
+
+  ai_recommendations: defineTable({
+    userId: v.id('users'),
+    type: v.string(), // recommendation, analysis, suggestion
+    content: v.string(),
+    date: v.string(),
+    createdAt: v.number(),
+  }).index('by_user', ['userId']),
 
   sessions: defineTable({
     userId: v.id('users'),

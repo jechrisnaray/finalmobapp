@@ -1,63 +1,51 @@
-// HealthySteps Color System — Green-Blue Health/Wellness Theme
+// HealthySteps Dark Vivid Color System
 export const Colors = {
-  // Primary — Emerald Green
-  primary: '#10B981',
-  primaryLight: '#34D399',
-  primaryDark: '#059669',
-  primaryFaded: 'rgba(16, 185, 129, 0.15)',
+  // Primary — Vivid Emerald
+  primary: '#34D399',
+  primaryLight: '#6EE7B7',
+  primaryFaded: 'rgba(52, 211, 153, 0.18)',
 
-  // Secondary — Ocean Blue
-  secondary: '#3B82F6',
-  secondaryLight: '#60A5FA',
-  secondaryDark: '#2563EB',
-  secondaryFaded: 'rgba(59, 130, 246, 0.15)',
-
-  // Accent — Teal
-  accent: '#14B8A6',
-  accentLight: '#2DD4BF',
-  accentDark: '#0D9488',
+  // Secondary — Vivid Blue
+  secondary: '#60A5FA',
+  secondaryFaded: 'rgba(96, 165, 250, 0.18)',
 
   // Backgrounds
-  background: '#0F172A',       // Dark navy
-  backgroundLight: '#1E293B',  // Slightly lighter
-  backgroundCard: '#1E293B',
-  backgroundInput: '#334155',
-  surface: '#1E293B',
+  background: '#111827',       // Less navy, deep charcoal
+  backgroundLight: '#1F2937',  // More neutral surface
+  surface: '#1F2937',
+  backgroundCard: '#243044',   // Elevated card background
+  backgroundInput: '#2D3B4E',  // Elevated input background
+  backgroundElevated: '#2A3A4F', // Modal/Bottom sheet background
 
   // Text
   text: '#F8FAFC',
-  textSecondary: '#94A3B8',
-  textMuted: '#64748B',
-  textInverse: '#0F172A',
+  textSecondary: '#CBD5E1',
+  textMuted: '#94A3B8',
+  textInverse: '#111827',
 
   // Status
-  success: '#10B981',
+  success: '#34D399',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
 
-  // Mood Colors (scale 1-5)
-  mood1: '#EF4444', // Very Bad — Red
-  mood2: '#F97316', // Bad — Orange
-  mood3: '#F59E0B', // Okay — Yellow
-  mood4: '#10B981', // Good — Green
-  mood5: '#3B82F6', // Great — Blue
+  // Mood Colors (scale 1-5) — Vivid
+  mood1: '#F87171', // Red
+  mood2: '#FB923C', // Orange
+  mood3: '#94A3B8', // Muted Slate
+  mood4: '#60A5FA', // Blue
+  mood5: '#34D399', // Emerald
 
-  // Borders & Dividers
-  border: '#334155',
-  borderLight: '#475569',
-  divider: 'rgba(148, 163, 184, 0.12)',
+  // Borders & Shadows
+  border: '#3D4F63',
+  borderLight: '#4B6280',
+  divider: 'rgba(255, 255, 255, 0.05)',
+  cardShadow: 'rgba(0, 0, 0, 0.4)',
 
-  // Gradients (start, end)
-  gradientPrimary: ['#10B981', '#3B82F6'] as [string, string],
-  gradientDark: ['#0F172A', '#1E293B'] as [string, string],
-  gradientCard: ['#1E293B', '#334155'] as [string, string],
+  // Gradients
+  gradientPrimary: ['#34D399', '#60A5FA'] as [string, string],
+  gradientCard: ['#243044', '#2D3B4E'] as [string, string],
 
-  // Shadows
-  shadow: '#000000',
-  overlay: 'rgba(0, 0, 0, 0.5)',
-
-  // White/Black
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
@@ -67,16 +55,16 @@ export const Spacing = {
   xs: 4,
   sm: 8,
   md: 16,
-  lg: 24,
+  lg: 20,
   xl: 32,
   xxl: 48,
 };
 
 export const BorderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  sm: 10,
+  md: 14,
+  lg: 20,
+  xl: 28,
   full: 9999,
 };
 
@@ -85,9 +73,9 @@ export const FontSize = {
   sm: 14,
   md: 16,
   lg: 18,
-  xl: 22,
-  xxl: 28,
-  hero: 34,
+  xl: 24,
+  xxl: 30,
+  hero: 36,
 };
 
 export const FontWeight = {
@@ -97,3 +85,5 @@ export const FontWeight = {
   bold: '700' as const,
   extrabold: '800' as const,
 };
+
+

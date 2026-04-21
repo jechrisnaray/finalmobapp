@@ -9,7 +9,7 @@ export const getLogsByDate = query({
   },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query('habitLogs')
+      .query('habit_progress')
       .withIndex('by_user_and_date', (q) =>
         q.eq('userId', args.userId).eq('date', args.date)
       )
@@ -26,7 +26,7 @@ export const getLogsByHabit = query({
   },
   handler: async (ctx, args) => {
     const logs = await ctx.db
-      .query('habitLogs')
+      .query('habit_progress')
       .withIndex('by_habit_and_date', (q) =>
         q.eq('habitId', args.habitId).gte('date', args.startDate).lte('date', args.endDate)
       )
@@ -45,7 +45,7 @@ export const toggleHabitLog = mutation({
   handler: async (ctx, args) => {
     // Check if log already exists
     const existing = await ctx.db
-      .query('habitLogs')
+      .query('habit_progress')
       .withIndex('by_habit_and_date', (q) =>
         q.eq('habitId', args.habitId).eq('date', args.date)
       )
@@ -64,7 +64,7 @@ export const toggleHabitLog = mutation({
       }
     } else {
       // Create new log as done
-      const logId = await ctx.db.insert('habitLogs', {
+      const logId = await ctx.db.insert('habit_progress', {
         habitId: args.habitId,
         userId: args.userId,
         date: args.date,
@@ -74,8 +74,6 @@ export const toggleHabitLog = mutation({
     }
   },
 });
-
-
 
 // Get completion stats for a user (today)
 export const getTodayStats = query({
@@ -92,7 +90,7 @@ export const getTodayStats = query({
 
     // Get today's logs
     const logs = await ctx.db
-      .query('habitLogs')
+      .query('habit_progress')
       .withIndex('by_user_and_date', (q) =>
         q.eq('userId', args.userId).eq('date', args.date)
       )
@@ -103,5 +101,21 @@ export const getTodayStats = query({
       totalHabits: habits.length,
       completedToday: logs.length,
     };
+  },
+});
+// Get habit logs for a user within a date range
+export const getLogsByDateRange = query({
+  args: {
+    userId: v.id('users'),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('habit_progress')
+      .withIndex('by_user_and_date', (q) =>
+        q.eq('userId', args.userId).gte('date', args.startDate).lte('date', args.endDate)
+      )
+      .collect();
   },
 });

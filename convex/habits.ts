@@ -73,7 +73,7 @@ export const deleteHabit = mutation({
   args: { habitId: v.id('habits') },
   handler: async (ctx, args) => {
     const logs = await ctx.db
-      .query('habitLogs')
+      .query('habit_progress')
       .withIndex('by_habit_and_date', (q) => q.eq('habitId', args.habitId))
       .collect();
     for (const log of logs) {
@@ -95,7 +95,7 @@ export const getAllStreaks = query({
     if (habits.length === 0) return {};
 
     const allLogs = await ctx.db
-      .query('habitLogs')
+      .query('habit_progress')
       .withIndex('by_user_and_date', (q) => q.eq('userId', args.userId))
       .filter((q) => q.eq(q.field('isDone'), true))
       .collect();

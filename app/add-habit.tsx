@@ -32,10 +32,10 @@ export default function AddHabitScreen() {
   const [customDays, setCustomDays] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const frequencyOptions: { value: Frequency; label: string; icon: string; desc: string }[] = [
-    { value: 'daily', label: 'Harian', icon: '📅', desc: 'Setiap hari' },
-    { value: 'weekly', label: 'Mingguan', icon: '📆', desc: '1x seminggu' },
-    { value: 'custom', label: 'Custom', icon: '⚙️', desc: 'Hari tertentu' },
+  const frequencyOptions: { value: Frequency; label: string; icon: any; desc: string }[] = [
+    { value: 'daily', label: 'Harian', icon: 'calendar-outline', desc: 'Setiap hari' },
+    { value: 'weekly', label: 'Mingguan', icon: 'calendar', desc: '1x seminggu' },
+    { value: 'custom', label: 'Custom', icon: 'settings-outline', desc: 'Hari tertentu' },
   ];
 
   const toggleDay = (day: number) => {
@@ -101,10 +101,16 @@ export default function AddHabitScreen() {
           <Text style={styles.previewTitle}>
             {title.trim() || 'Nama Habit'}
           </Text>
-          <Text style={styles.previewFreq}>
-            {frequencyOptions.find((f) => f.value === frequency)?.icon}{' '}
-            {frequencyOptions.find((f) => f.value === frequency)?.label}
-          </Text>
+          <View style={styles.previewMeta}>
+            <Ionicons 
+              name={frequencyOptions.find((f) => f.value === frequency)?.icon} 
+              size={12} 
+              color={Colors.textMuted} 
+            />
+            <Text style={styles.previewFreq}>
+              {frequencyOptions.find((f) => f.value === frequency)?.label}
+            </Text>
+          </View>
         </View>
 
         {/* Title Input */}
@@ -136,7 +142,13 @@ export default function AddHabitScreen() {
                 onPress={() => setFrequency(option.value)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.frequencyIcon}>{option.icon}</Text>
+                <View style={styles.frequencyIconContainer}>
+                  <Ionicons 
+                    name={option.icon} 
+                    size={24} 
+                    color={frequency === option.value ? Colors.primary : Colors.textSecondary} 
+                  />
+                </View>
                 <Text
                   style={[
                     styles.frequencyLabel,
@@ -258,15 +270,17 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.backgroundCard,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: Colors.backgroundElevated,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   headerTitle: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize.xxl,
     fontWeight: FontWeight.bold,
     color: Colors.text,
   },
@@ -276,90 +290,108 @@ const styles = StyleSheet.create({
   },
   previewCard: {
     backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
-    borderLeftWidth: 4,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderLeftWidth: 4,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  previewDot: { width: 12, height: 12, borderRadius: 6 },
+  previewMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.backgroundInput,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  previewDot: { width: 14, height: 14, borderRadius: 7 },
   previewTitle: {
     flex: 1,
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
     color: Colors.text,
   },
-  previewFreq: { fontSize: FontSize.xs, color: Colors.textMuted },
-  section: { marginBottom: Spacing.lg },
+  previewFreq: { fontSize: 11, color: Colors.textSecondary, fontWeight: FontWeight.bold },
+  section: { marginBottom: Spacing.xl },
   sectionTitle: {
     fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
     color: Colors.text,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.md,
   },
   sectionSubtitle: {
     fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginBottom: Spacing.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
   },
   input: {
     backgroundColor: Colors.backgroundInput,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 14,
+    paddingVertical: 16,
     fontSize: FontSize.md,
     color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
   charCount: {
-    fontSize: FontSize.xs,
+    fontSize: 11,
     color: Colors.textMuted,
     textAlign: 'right',
     marginTop: Spacing.xs,
+    fontWeight: FontWeight.medium,
   },
   frequencyRow: { flexDirection: 'row', gap: Spacing.sm },
   frequencyOption: {
     flex: 1,
     backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   frequencyOptionActive: {
     borderColor: Colors.primary,
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
   },
-  frequencyIcon: { fontSize: 24, marginBottom: 4 },
+  frequencyIconContainer: {
+    marginBottom: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.backgroundInput,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   frequencyLabel: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.bold,
   },
   frequencyLabelActive: {
     color: Colors.primary,
-    fontWeight: FontWeight.bold,
   },
   frequencyDesc: {
     fontSize: 10,
     color: Colors.textMuted,
-    marginTop: 2,
+    marginTop: 4,
+    textAlign: 'center',
   },
   daysRow: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: 8,
     flexWrap: 'wrap',
   },
   dayChip: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.backgroundCard,
@@ -367,74 +399,80 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   dayChipText: {
-    fontSize: FontSize.xs,
+    fontSize: 12,
     color: Colors.textSecondary,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.bold,
   },
   dayChipTextActive: {
     color: Colors.white,
-    fontWeight: FontWeight.bold,
   },
   selectedDaysText: {
-    fontSize: FontSize.xs,
+    fontSize: 12,
     color: Colors.primary,
-    marginTop: Spacing.sm,
-    fontWeight: FontWeight.medium,
+    marginTop: Spacing.md,
+    fontWeight: FontWeight.bold,
+    backgroundColor: 'rgba(52, 211, 153, 0.14)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
   infoBox: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.xs,
-    backgroundColor: Colors.primaryFaded,
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(96, 165, 250, 0.1)',
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: 'rgba(96, 165, 250, 0.2)',
   },
   infoText: {
-    fontSize: FontSize.xs,
-    color: Colors.primary,
+    fontSize: 12,
+    color: Colors.secondary,
     flex: 1,
     lineHeight: 18,
+    fontWeight: FontWeight.medium,
   },
-  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   colorOption: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: 'transparent',
   },
   colorOptionActive: {
-    borderColor: Colors.white,
+    borderColor: Colors.text,
     elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   submitButton: {
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.md,
-    paddingVertical: 16,
+    paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
-    elevation: 2,
+    marginTop: Spacing.lg,
+    elevation: 5,
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 10,
   },
-  submitDisabled: { opacity: 0.6 },
+  submitDisabled: { opacity: 0.4 },
   submitText: {
-    color: Colors.white,
+    color: Colors.background,
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
   },
 });

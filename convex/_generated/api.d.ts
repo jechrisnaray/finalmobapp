@@ -13,6 +13,7 @@ import type * as auth from "../auth.js";
 import type * as habitLogs from "../habitLogs.js";
 import type * as habits from "../habits.js";
 import type * as moodLogs from "../moodLogs.js";
+import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 
 import type {
@@ -27,6 +28,7 @@ declare const fullApi: ApiFromModules<{
   habitLogs: typeof habitLogs;
   habits: typeof habits;
   moodLogs: typeof moodLogs;
+  seed: typeof seed;
   users: typeof users;
 }>;
 

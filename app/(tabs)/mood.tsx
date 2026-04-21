@@ -27,6 +27,10 @@ export default function MoodScreen() {
     Config.MOOD_EMOJIS.map(() => new Animated.Value(1))
   ).current;
 
+  // Entrance animation for today's card
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
   // Fetch today's mood
   const todayMood = useQuery(
     api.moodLogs.getMoodByDate,
@@ -65,6 +69,11 @@ export default function MoodScreen() {
     if (todayMood) {
       setSelectedMood(todayMood.mood);
       setNote(todayMood.note || '');
+      
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+      ]).start();
     }
   }, [todayMood]);
 
@@ -74,26 +83,16 @@ export default function MoodScreen() {
 
     // Animate selected emoji
     Animated.sequence([
-      Animated.timing(scaleAnims[moodIndex], {
-        toValue: 1.3,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnims[moodIndex], {
-        toValue: 1.1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
+      Animated.spring(scaleAnims[moodIndex], { toValue: 1.2, useNativeDriver: true }),
+      Animated.spring(scaleAnims[moodIndex], { toValue: 1, useNativeDriver: true }),
     ]).start();
 
-    // Reset other animations
+    // Fade others
     scaleAnims.forEach((anim, i) => {
       if (i !== moodIndex) {
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }).start();
+        Animated.timing(anim, { toValue: 0.8, duration: 200, useNativeDriver: true }).start();
+      } else {
+        Animated.timing(anim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
       }
     });
   };
@@ -109,7 +108,7 @@ export default function MoodScreen() {
         note: note.trim() || undefined,
         date: today,
       });
-      Alert.alert('Berhasil! ✨', 'Mood hari ini sudah tersimpan.');
+      Alert.alert('Berhasil', 'Mood hari ini sudah tersimpan.');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Gagal menyimpan mood');
     } finally {
@@ -128,12 +127,7 @@ export default function MoodScreen() {
     return moodColors[mood] || Colors.textMuted;
   };
 
-  const getDayLabel = (dateStr: string) => {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-    return days[date.getDay()];
-  };
+  const dayLabelsFull = ['Buruk Sekali', 'Kurang', 'Oke', 'Baik', 'Sangat Baik'];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -154,6 +148,8 @@ export default function MoodScreen() {
             {Config.MOOD_EMOJIS.map((emoji, index) => {
               const moodValue = index + 1;
               const isSelected = selectedMood === moodValue;
+              const moodColor = getMoodColor(moodValue);
+              
               return (
                 <TouchableOpacity
                   key={index}
@@ -165,10 +161,15 @@ export default function MoodScreen() {
                     style={[
                       styles.emojiContainer,
                       isSelected && {
-                        backgroundColor: `${getMoodColor(moodValue)}20`,
-                        borderColor: getMoodColor(moodValue),
+                        backgroundColor: `${moodColor}20`,
+                        borderColor: moodColor,
+                        shadowColor: moodColor,
+                        shadowRadius: 12,
+                        shadowOpacity: 0.6,
+                        elevation: 10,
                       },
                       { transform: [{ scale: scaleAnims[index] }] },
+                      !isSelected && selectedMood !== null ? { opacity: 0.5 } : {}
                     ]}
                   >
                     <Text style={styles.emojiText}>{emoji}</Text>
@@ -176,10 +177,10 @@ export default function MoodScreen() {
                   <Text
                     style={[
                       styles.moodLabel,
-                      isSelected && { color: getMoodColor(moodValue), fontWeight: FontWeight.bold },
+                      isSelected && { color: moodColor, fontWeight: FontWeight.bold },
                     ]}
                   >
-                    {Config.MOOD_LABELS[index]}
+                    {dayLabelsFull[index]}
                   </Text>
                 </TouchableOpacity>
               );
@@ -187,14 +188,25 @@ export default function MoodScreen() {
           </View>
         </View>
 
+        {/* Today's Summary Card if exists */}
+        {todayMood && (
+          <Animated.View style={[styles.todayCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }], borderColor: getMoodColor(todayMood.mood) }]}>
+            <Text style={styles.todayEmoji}>{Config.MOOD_EMOJIS[todayMood.mood - 1]}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.todayTitle}>Mood Kamu Hari Ini</Text>
+              <Text style={styles.todayValue}>{Config.MOOD_LABELS[todayMood.mood - 1]}</Text>
+            </View>
+          </Animated.View>
+        )}
+
         {/* Note Input */}
         <View style={styles.noteSection}>
-          <Text style={styles.sectionTitle}>Catatan (opsional)</Text>
+          <Text style={styles.sectionTitle}>Apa yang kamu pikirkan?</Text>
           <TextInput
-            style={styles.noteInput}
+            style={[styles.noteInput, !!selectedMood && { borderColor: `${getMoodColor(selectedMood)}40` }]}
             value={note}
             onChangeText={setNote}
-            placeholder="Ceritakan tentang hari ini..."
+            placeholder="Ceritakan perasaanmu hari ini..."
             placeholderTextColor={Colors.textMuted}
             multiline
             numberOfLines={3}
@@ -209,7 +221,7 @@ export default function MoodScreen() {
           style={[
             styles.saveButton,
             !selectedMood && styles.saveButtonDisabled,
-            selectedMood && { backgroundColor: getMoodColor(selectedMood) },
+            !!selectedMood && { backgroundColor: getMoodColor(selectedMood) },
           ]}
           onPress={handleSave}
           disabled={!selectedMood || isSaving}
@@ -219,61 +231,59 @@ export default function MoodScreen() {
             {isSaving
               ? 'Menyimpan...'
               : todayMood
-              ? 'Update Mood ✏️'
-              : 'Simpan Mood ✨'}
+              ? 'Update Mood'
+              : 'Simpan Mood'}
           </Text>
         </TouchableOpacity>
 
         {/* Weekly Chart */}
         <View style={styles.weekSection}>
           <Text style={styles.sectionTitle}>Mood Minggu Ini</Text>
-          {averageMood && (
-            <View style={styles.averageRow}>
-              <Text style={styles.averageLabel}>Rata-rata:</Text>
-              <Text style={[styles.averageValue, { color: getMoodColor(Math.round(averageMood.average)) }]}>
-                {Config.MOOD_EMOJIS[Math.round(averageMood.average) - 1]} {averageMood.average.toFixed(1)}
+          
+          <View style={styles.chartContainer}>
+            <View style={styles.chartRow}>
+              {weekDates.map((dateStr) => {
+                const moodLog = weeklyMoods?.find((m) => m.date === dateStr);
+                const [y, m, d] = dateStr.split('-').map(Number);
+                const dateObj = new Date(y, m - 1, d);
+                const isToday = dateStr === today;
+                const moodValue = moodLog?.mood || 0;
+                
+                return (
+                  <View key={dateStr} style={styles.barColumn}>
+                    <Text style={styles.barValue}>{moodValue > 0 ? moodValue : ''}</Text>
+                    <View style={styles.barWrapper}>
+                      <View 
+                        style={[
+                          styles.barFill, 
+                          { 
+                            height: moodValue === 0 ? 8 : (moodValue / 5) * 80,
+                            backgroundColor: moodValue > 0 ? getMoodColor(moodValue) : '#3D4F63',
+                            opacity: moodValue > 0 ? 1 : 0.2
+                          }
+                        ]} 
+                      />
+                    </View>
+                    <Text style={[styles.barDay, isToday && { color: Colors.primary, fontWeight: 'bold' }]}>
+                      {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][dateObj.getDay()]}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Average Display */}
+          {averageMood && averageMood.average > 0 && (
+            <View style={styles.averageSection}>
+              <View style={styles.gaugeContainer}>
+                <View style={[styles.gaugeFill, { width: `${(averageMood.average / 5) * 100}%`, backgroundColor: getMoodColor(Math.round(averageMood.average)) }]} />
+              </View>
+              <Text style={styles.averageText}>
+                Rata-rata: <Text style={{ fontWeight: 'bold', color: getMoodColor(Math.round(averageMood.average)) }}>{averageMood.average.toFixed(1)} ({Config.MOOD_LABELS[Math.round(averageMood.average)-1]})</Text>
               </Text>
             </View>
           )}
-          <View style={styles.weekChart}>
-            {weekDates.map((dateStr) => {
-              const moodLog = weeklyMoods?.find((m) => m.date === dateStr);
-              const isToday = dateStr === today;
-              const barHeight = moodLog ? (moodLog.mood / 5) * 80 : 6;
-
-              return (
-                <View key={dateStr} style={styles.dayColumn}>
-                  <View style={styles.barContainer}>
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: barHeight,
-                          backgroundColor: moodLog
-                            ? getMoodColor(moodLog.mood)
-                            : Colors.backgroundInput,
-                        },
-                      ]}
-                    />
-                  </View>
-                  {moodLog && (
-                    <Text style={styles.barEmoji}>
-                      {Config.MOOD_EMOJIS[moodLog.mood - 1]}
-                    </Text>
-                  )}
-                  <Text
-                    style={[
-                      styles.dayLabel,
-                      isToday && styles.dayLabelToday,
-                    ]}
-                  >
-                    {getDayLabel(dateStr)}
-                  </Text>
-                  {isToday && <View style={styles.todayDot} />}
-                </View>
-              );
-            })}
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -300,33 +310,38 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
+    marginTop: 2,
   },
   sectionTitle: {
     fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
     color: Colors.text,
     marginBottom: Spacing.md,
   },
   moodSection: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   moodRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    backgroundColor: Colors.backgroundCard,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   moodButton: {
     alignItems: 'center',
     flex: 1,
   },
   emojiContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.backgroundCard,
+    backgroundColor: Colors.backgroundInput,
     borderWidth: 2,
     borderColor: 'transparent',
     marginBottom: Spacing.xs,
@@ -335,14 +350,38 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   moodLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: Colors.textMuted,
     textAlign: 'center',
+    marginTop: 4,
+  },
+  todayCard: {
+    marginHorizontal: Spacing.lg,
+    backgroundColor: Colors.backgroundCard,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    marginBottom: Spacing.xl,
+    gap: Spacing.md,
+  },
+  todayEmoji: {
+    fontSize: 40,
+  },
+  todayTitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
     fontWeight: FontWeight.medium,
+  },
+  todayValue: {
+    fontSize: FontSize.lg,
+    color: Colors.text,
+    fontWeight: FontWeight.bold,
   },
   noteSection: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   noteInput: {
     backgroundColor: Colors.backgroundInput,
@@ -350,12 +389,12 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    minHeight: 80,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    minHeight: 120,
   },
   charCount: {
-    fontSize: FontSize.xs,
+    fontSize: 11,
     color: Colors.textMuted,
     textAlign: 'right',
     marginTop: Spacing.xs,
@@ -364,12 +403,13 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.md,
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.xxl,
   },
   saveButtonDisabled: {
     backgroundColor: Colors.backgroundInput,
+    opacity: 0.5,
   },
   saveButtonText: {
     color: Colors.white,
@@ -379,61 +419,66 @@ const styles = StyleSheet.create({
   weekSection: {
     paddingHorizontal: Spacing.lg,
   },
-  averageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
+  chartContainer: {
+    backgroundColor: Colors.backgroundCard,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  averageLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-  },
-  averageValue: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
-  },
-  weekChart: {
+  chartRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    alignItems: 'flex-end',
+    height: 140,
   },
-  dayColumn: {
+  barColumn: {
     alignItems: 'center',
     flex: 1,
   },
-  barContainer: {
-    height: 80,
+  barValue: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+    fontWeight: 'bold',
+  },
+  barWrapper: {
+    height: 100,
+    width: 28,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 14,
     justifyContent: 'flex-end',
-    marginBottom: Spacing.xs,
+    overflow: 'hidden',
   },
-  bar: {
-    width: 18,
-    borderRadius: 9,
-    minHeight: 6,
+  barFill: {
+    width: '100%',
+    borderRadius: 14,
   },
-  barEmoji: {
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  dayLabel: {
-    fontSize: FontSize.xs,
+  barDay: {
+    fontSize: 10,
     color: Colors.textMuted,
-    fontWeight: FontWeight.medium,
+    marginTop: 8,
   },
-  dayLabelToday: {
-    color: Colors.primary,
-    fontWeight: FontWeight.bold,
+  averageSection: {
+    marginTop: Spacing.lg,
+    alignItems: 'center',
   },
-  todayDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.primary,
-    marginTop: 2,
+  gaugeContainer: {
+    width: '100%',
+    height: 8,
+    backgroundColor: Colors.backgroundInput,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  gaugeFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  averageText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
   },
 });
+
+
