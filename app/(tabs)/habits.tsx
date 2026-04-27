@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,9 @@ const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 interface Habit {
   _id: Id<'habits'>;
   title: string;
+  type: 'general' | 'water' | 'exercise' | 'sleep';
+  targetValue?: number;
+  unit?: string;
   frequency: 'daily' | 'weekly' | 'custom';
   color: string;
   customDays?: number[];
@@ -57,6 +61,7 @@ export default function HabitsScreen() {
   );
 
   const toggleHabit = useMutation(api.habitLogs.toggleHabitLog);
+  const updateValue = useMutation(api.habitLogs.updateHabitValue);
   const deleteHabit = useMutation(api.habits.deleteHabit);
 
   // Filter: hanya tampilkan habit yang dijadwalkan hari ini
@@ -85,6 +90,22 @@ export default function HabitsScreen() {
       await toggleHabit({ habitId, userId: user.userId, date: today });
     } catch (error) {
       Alert.alert('Gagal', 'Terjadi kesalahan saat mengupdate habit.');
+    }
+  };
+
+  const handleUpdateValue = async (habit: Habit, newValue: number) => {
+    if (!user) return;
+    try {
+      const isDone = newValue >= (habit.targetValue ?? 1);
+      await updateValue({
+        habitId: habit._id,
+        userId: user.userId,
+        date: today,
+        value: newValue,
+        isDone,
+      });
+    } catch (error) {
+      console.error('Error updating value:', error);
     }
   };
 
@@ -265,94 +286,176 @@ export default function HabitsScreen() {
         {todayHabits && todayHabits.length > 0 && (
           <View style={styles.habitList}>
             {(todayHabits as Habit[]).map((habit) => {
-              const done = isHabitDone(habit._id);
+              const log = todayLogs?.find((l) => l.habitId === habit._id);
+              const done = log?.isDone ?? false;
+              const currentValue = log?.value ?? 0;
               const streak = streakMap?.[habit._id] ?? 0;
               const isScheduled = isHabitScheduledToday(habit);
 
+              // 🎨 Specialized UI for Numeric Habits (Only if targetValue > 0)
+              if (habit.type !== 'general' && habit.targetValue && habit.targetValue > 0) {
+                return (
+                  <View
+                    key={habit._id}
+                    style={[
+                      styles.habitCard,
+                      done && styles.habitCardDone,
+                      !isScheduled && styles.habitCardUnscheduled,
+                      { flexDirection: 'column', alignItems: 'stretch' }
+                    ]}
+                  >
+                    <View style={styles.numericHeader}>
+                      <View style={[styles.habitColorStrip, { backgroundColor: habit.color, height: 30 }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.habitTitle, done && styles.habitTitleDone]}>{habit.title}</Text>
+                        <Text style={styles.numericProgressText}>
+                          {currentValue} / {habit.targetValue} {habit.unit}
+                        </Text>
+                      </View>
+                      
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity onPress={() => handleEdit(habit._id)} style={styles.editButtonSmall}>
+                          <Ionicons name="pencil" size={16} color={Colors.textSecondary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleDelete(habit._id, habit.title)} style={styles.editButtonSmall}>
+                          <Ionicons name="trash-outline" size={16} color={Colors.error} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    <View style={styles.numericControls}>
+                      <TouchableOpacity 
+                        style={styles.controlButton} 
+                        onPress={() => handleUpdateValue(habit, Math.max(0, currentValue - 1))}
+                      >
+                        <Ionicons name="remove" size={20} color={Colors.text} />
+                      </TouchableOpacity>
+                      
+                      <View style={styles.inputBoxContainer}>
+                        <TextInput
+                          style={styles.numericInput}
+                          value={currentValue.toString()}
+                          onChangeText={(val) => {
+                            const num = parseInt(val);
+                            if (!isNaN(num)) handleUpdateValue(habit, num);
+                          }}
+                          keyboardType="numeric"
+                          selectTextOnFocus
+                        />
+                        <Text style={styles.inputUnitText}>{habit.unit}</Text>
+                      </View>
+
+                      <TouchableOpacity 
+                        style={[styles.controlButton, { backgroundColor: habit.color }]} 
+                        onPress={() => handleUpdateValue(habit, currentValue + 1)}
+                      >
+                        <Ionicons name="add" size={20} color={Colors.white} />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[
+                          styles.quickCompleteButton, 
+                          done && { backgroundColor: Colors.primary }
+                        ]} 
+                        onPress={() => handleUpdateValue(habit, habit.targetValue ?? 0)}
+                      >
+                        <Ionicons 
+                          name={done ? "checkmark-done" : "checkmark"} 
+                          size={20} 
+                          color={done ? Colors.white : Colors.textMuted} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              }
+
               return (
-                <TouchableOpacity
+                <View
                   key={habit._id}
                   style={[
                     styles.habitCard,
                     done && styles.habitCardDone,
                     !isScheduled && styles.habitCardUnscheduled,
                   ]}
-                  onPress={() => handleToggle(habit._id)}
-                  onLongPress={() => handleDelete(habit._id, habit.title)}
-                  activeOpacity={0.7}
                 >
-                  <View
-                    style={[
-                      styles.habitColorStrip,
-                      { backgroundColor: habit.color },
-                    ]}
-                  />
-
-                  <View
-                    style={[
-                      styles.checkbox,
-                      done && { backgroundColor: habit.color, borderColor: habit.color },
-                    ]}
+                  <TouchableOpacity
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                    onPress={() => handleToggle(habit._id)}
+                    activeOpacity={0.7}
                   >
-                    {done && (
-                      <Ionicons name="checkmark" size={16} color={Colors.white} />
-                    )}
-                  </View>
-
-                  <View style={styles.habitInfo}>
-                    <Text
+                    <View
                       style={[
-                        styles.habitTitle,
-                        done && styles.habitTitleDone,
+                        styles.habitColorStrip,
+                        { backgroundColor: habit.color },
+                      ]}
+                    />
+
+                    <View
+                      style={[
+                        styles.checkbox,
+                        done && { backgroundColor: habit.color, borderColor: habit.color },
                       ]}
                     >
-                      {habit.title}
-                    </Text>
-                    <View style={styles.habitMeta}>
-                      <View style={styles.frequencyBadge}>
-                        <Ionicons name="calendar-outline" size={10} color={Colors.textMuted} />
-                        <Text style={styles.frequencyText}>
-                          {habit.frequency === 'daily'
-                            ? 'Harian'
-                            : habit.frequency === 'weekly'
-                              ? 'Mingguan'
-                              : `${habit.customDays && habit.customDays.length > 0
-                                  ? habit.customDays
-                                      .slice()
-                                      .sort((a, b) => a - b)
-                                      .map((d) => DAY_LABELS[d])
-                                      .join(', ')
-                                  : 'Custom'}`}
-                        </Text>
-                      </View>
+                      {done && (
+                        <Ionicons name="checkmark" size={16} color={Colors.white} />
+                      )}
+                    </View>
 
-                      {streak > 0 && (
-                        <View style={styles.streakBadge}>
-                          <Ionicons name="flame" size={12} color={'#F59E0B'} />
-                          <Text style={styles.streakText}>
-                            {streak} hari
+                    <View style={styles.habitInfo}>
+                      <Text
+                        style={[
+                          styles.habitTitle,
+                          done && styles.habitTitleDone,
+                        ]}
+                      >
+                        {habit.title}
+                      </Text>
+                      <View style={styles.habitMeta}>
+                        <View style={styles.frequencyBadge}>
+                          <Ionicons name="calendar-outline" size={10} color={Colors.textMuted} />
+                          <Text style={styles.frequencyText}>
+                            {habit.frequency === 'daily'
+                              ? 'Harian'
+                              : habit.frequency === 'weekly'
+                                ? 'Mingguan'
+                                : `${habit.customDays && habit.customDays.length > 0
+                                    ? habit.customDays
+                                        .slice()
+                                        .sort((a, b) => a - b)
+                                        .map((d) => DAY_LABELS[d])
+                                        .join(', ')
+                                    : 'Custom'}`}
                           </Text>
                         </View>
-                      )}
 
+                        {streak > 0 && (
+                          <View style={styles.streakBadge}>
+                            <Ionicons name="flame" size={12} color={'#F59E0B'} />
+                            <Text style={styles.streakText}>
+                              {streak} hari
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() => handleEdit(habit._id)}
-                    activeOpacity={0.6}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons name="pencil-outline" size={16} color={Colors.textMuted} />
                   </TouchableOpacity>
 
-                  {done && (
-                    <View style={styles.doneIndicator}>
-                      <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
-                    </View>
-                  )}
-                </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => handleEdit(habit._id)}
+                    >
+                      <Ionicons name="pencil-outline" size={16} color={Colors.textMuted} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => handleDelete(habit._id, habit.title)}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={Colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               );
             })}
           </View>
@@ -590,6 +693,117 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontWeight: FontWeight.medium,
   },
+  numericHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  numericProgressText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.bold,
+    marginTop: 2,
+  },
+  numericControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  controlButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: Colors.backgroundInput,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  progressContainer: {
+    flex: 1,
+    height: 8,
+  },
+  progressBg: {
+    height: 8,
+    backgroundColor: Colors.backgroundInput,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  editButtonSmall: {
+    padding: 8,
+  },
+  inputBoxContainer: {
+    flex: 1,
+    height: 44,
+    backgroundColor: Colors.backgroundInput,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  numericInput: {
+    flex: 1,
+    fontSize: 18,
+    color: Colors.text,
+    fontWeight: FontWeight.bold,
+    textAlign: 'center',
+    padding: 0,
+  },
+  inputUnitText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontWeight: FontWeight.medium,
+    marginLeft: 4,
+  },
+  presetsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  presetButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  presetText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.bold,
+  },
+  targetIndicator: {
+    flex: 1,
+    textAlign: 'right',
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontWeight: FontWeight.medium,
+  },
+  quickCompleteButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: Colors.backgroundInput,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginLeft: 4,
+  },
+  editButton: {
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.backgroundElevated,
+    marginLeft: 4,
+  },
   habitMeta: {
     flexDirection: 'row',
     marginTop: 6,
@@ -624,15 +838,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#F59E0B',
     fontWeight: FontWeight.bold,
-  },
-  editButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: Colors.backgroundInput,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: Spacing.xs,
   },
   doneIndicator: {
     marginLeft: Spacing.xs,

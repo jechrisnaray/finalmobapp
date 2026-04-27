@@ -12,6 +12,14 @@ export default defineSchema({
   habits: defineTable({
     userId: v.id('users'),
     title: v.string(),
+    type: v.optional(v.union(
+      v.literal('general'),
+      v.literal('water'),
+      v.literal('exercise'),
+      v.literal('sleep')
+    )),
+    targetValue: v.optional(v.number()), // Target per hari (misal: 8 gelas, 30 menit)
+    unit: v.optional(v.string()), // Satuan (misal: 'gelas', 'menit', 'jam')
     frequency: v.union(
       v.literal('daily'),
       v.literal('weekly'),
@@ -28,6 +36,7 @@ export default defineSchema({
     userId: v.id('users'),
     date: v.string(),
     isDone: v.boolean(),
+    value: v.optional(v.number()), // Progres numerik (misal: sudah minum 3 gelas)
   })
     .index('by_habit_and_date', ['habitId', 'date'])
     .index('by_user_and_date', ['userId', 'date']),

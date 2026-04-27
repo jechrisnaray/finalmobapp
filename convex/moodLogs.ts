@@ -13,7 +13,8 @@ export const getMoodByDate = query({
       .withIndex('by_user_and_date', (q) =>
         q.eq('userId', args.userId).eq('date', args.date)
       )
-      .unique();
+      .order('desc')
+      .first();
   },
 });
 
@@ -54,7 +55,8 @@ export const createMoodLog = mutation({
       .withIndex('by_user_and_date', (q) =>
         q.eq('userId', args.userId).eq('date', args.date)
       )
-      .unique();
+      .order('desc')
+      .first();
 
     if (existing) {
       // Update existing mood log

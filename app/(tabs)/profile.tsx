@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -26,7 +27,6 @@ export default function ProfileScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const updateUser = useMutation(api.users.updateUser);
-  const runSeed = useMutation(api.seed.seedData);
 
   // Fetch habits count
   const habits = useQuery(
@@ -69,24 +69,22 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleSeedData = async () => {
-    if (!user) return;
+
+
+  const handleResetOnboarding = async () => {
     Alert.alert(
-      'Isi Data Dummy',
-      'Yakin ingin mengisi database dengan data dummy? Ini akan menambahkan habit dan progres baru.',
+      'Reset Pengenalan',
+      'Ingin mengulang layar pengenalan aplikasi? Anda akan diarahkan ke halaman onboarding.',
       [
         { text: 'Batal', style: 'cancel' },
         {
-          text: 'Ya, Isi Data',
+          text: 'Ya, Reset',
           onPress: async () => {
             try {
-              setIsSaving(true);
-              await runSeed({ userId: user.userId });
-              Alert.alert('Berhasil', 'Data dummy telah diisi. Silakan cek dashboard atau tab habits.');
-            } catch (err: any) {
-              Alert.alert('Error', err.message || 'Gagal mengisi data dummy');
-            } finally {
-              setIsSaving(false);
+              await AsyncStorage.removeItem('healthysteps_onboarding_done');
+              router.replace('/onboarding');
+            } catch (err) {
+              console.error(err);
             }
           },
         },
@@ -227,11 +225,12 @@ export default function ProfileScreen() {
             onPress={() => router.push('/add-habit')}
             iconColor={Colors.secondary}
           />
+
           <MenuItem
-            icon="cloud-upload-outline"
-            label="Seed Data (Demo)"
-            onPress={handleSeedData}
-            iconColor={Colors.warning}
+            icon="refresh-outline"
+            label="Reset Onboarding"
+            onPress={handleResetOnboarding}
+            iconColor={Colors.primary}
           />
           <MenuItem
             icon="information-circle-outline"

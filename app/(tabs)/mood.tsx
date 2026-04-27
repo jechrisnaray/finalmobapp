@@ -243,7 +243,10 @@ export default function MoodScreen() {
           <View style={styles.chartContainer}>
             <View style={styles.chartRow}>
               {weekDates.map((dateStr) => {
-                const moodLog = weeklyMoods?.find((m) => m.date === dateStr);
+                const dayLogs = weeklyMoods?.filter((m) => m.date === dateStr);
+                const moodLog = dayLogs && dayLogs.length > 0 
+                  ? dayLogs.sort((a, b) => b._creationTime - a._creationTime)[0] 
+                  : null;
                 const [y, m, d] = dateStr.split('-').map(Number);
                 const dateObj = new Date(y, m - 1, d);
                 const isToday = dateStr === today;

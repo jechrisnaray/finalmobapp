@@ -9,7 +9,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius } from '@/constants/Colors';
 import { Config } from '@/constants/Config';
 import { useAuth } from '@/context/AuthContext';
-import { getTodayString, getGreeting, formatDate } from '@/utils/helpers';
+import { getTodayString, getGreeting, formatDate, getCurrentWeekDates } from '@/utils/helpers';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SkeletonCard, SkeletonText } from '@/components/SkeletonLoader';
 
@@ -34,6 +34,19 @@ export default function HomeScreen() {
   const todayMood = useQuery(
     api.moodLogs.getMoodByDate,
     user ? { userId: user.userId, date: today } : 'skip'
+  );
+
+  // Fetch weekly moods
+  const weekDates = getCurrentWeekDates();
+  const weeklyMoods = useQuery(
+    api.moodLogs.getWeeklyMoods,
+    user
+      ? {
+          userId: user.userId,
+          startDate: weekDates[0],
+          endDate: weekDates[6],
+        }
+      : 'skip'
   );
 
   // Toggle habit
@@ -83,6 +96,33 @@ export default function HomeScreen() {
   const greeting = getGreeting();
   const completedToday = todayHabits?.filter((h) => isHabitDone(h._id)).length ?? 0;
   const totalHabits = todayHabits?.length ?? 0;
+
+  // 🧪 Specialized Stats
+  const waterHabit = habits?.find(h => h.type === 'water');
+  const exerciseHabit = habits?.find(h => h.type === 'exercise');
+  const sleepHabit = habits?.find(h => h.type === 'sleep');
+
+  const waterLog = waterHabit ? todayLogs?.find(l => l.habitId === waterHabit._id) : null;
+  const exerciseLog = exerciseHabit ? todayLogs?.find(l => l.habitId === exerciseHabit._id) : null;
+  const sleepLog = sleepHabit ? todayLogs?.find(l => l.habitId === sleepHabit._id) : null;
+
+  const waterProgress = waterHabit ? {
+    current: waterLog?.value ?? 0,
+    target: waterHabit.targetValue ?? 8,
+    unit: 'gelas' // Explicitly use 'gelas' for water
+  } : null;
+
+  const exerciseProgress = exerciseHabit ? {
+    current: exerciseLog?.value ?? 0,
+    target: exerciseHabit.targetValue ?? 30,
+    unit: exerciseHabit.unit ?? 'menit'
+  } : null;
+
+  const sleepProgress = sleepHabit ? {
+    current: sleepLog?.value ?? 0,
+    target: sleepHabit.targetValue ?? 8,
+    unit: sleepHabit.unit ?? 'jam'
+  } : null;
 
   // 🔔 In-app reminder
   const [showReminder, setShowReminder] = useState(false);
@@ -230,6 +270,84 @@ export default function HomeScreen() {
             <Text style={styles.statLabel}>Mood</Text>
           </View>
         </View>
+
+        {/* Weekly Mood Trend */}
+        <View style={styles.moodTrendContainer}>
+          <Text style={styles.trendTitle}>Tren Mood Minggu Ini</Text>
+          <View style={styles.trendRow}>
+            {weekDates.map((dateStr) => {
+              // Pick the latest log if multiple exist for the same date
+              const dayLogs = weeklyMoods?.filter((m) => m.date === dateStr);
+              const moodLog = dayLogs && dayLogs.length > 0 
+                ? dayLogs.sort((a, b) => b._creationTime - a._creationTime)[0] 
+                : null;
+              const moodValue = moodLog?.mood || 0;
+              const isToday = dateStr === today;
+              
+              return (
+                <View key={dateStr} style={styles.trendPoint}>
+                  <View 
+                    style={[
+                      styles.trendBar, 
+                      { 
+                        height: moodValue === 0 ? 4 : (moodValue / 5) * 40,
+                        backgroundColor: moodValue > 0 ? Config.MOOD_COLORS[moodValue - 1] : Colors.border,
+                        opacity: moodValue > 0 ? 1 : 0.3
+                      },
+                      isToday && { borderColor: Colors.primary, borderWidth: 1 }
+                    ]} 
+                  />
+                  <Text style={[styles.trendDay, isToday && { color: Colors.primary, fontWeight: 'bold' }]}>
+                    {['Mi', 'Se', 'Sl', 'Rb', 'Ka', 'Ju', 'Sa'][new Date(dateStr).getDay()]}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Specialized Progress Row */}
+        {(waterProgress || exerciseProgress || sleepProgress) && (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.specializedRow}
+          >
+            {waterProgress && (
+              <View style={[styles.specializedCard, { borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
+                <Ionicons name="water" size={24} color="#3B82F6" />
+                <View>
+                  <Text style={styles.specializedTitle}>Water</Text>
+                  <Text style={styles.specializedValue}>
+                    {waterProgress.current}/{waterProgress.target} {waterProgress.unit}
+                  </Text>
+                </View>
+              </View>
+            )}
+            {exerciseProgress && (
+              <View style={[styles.specializedCard, { borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
+                <Ionicons name="fitness" size={24} color="#10B981" />
+                <View>
+                  <Text style={styles.specializedTitle}>Exercise</Text>
+                  <Text style={styles.specializedValue}>
+                    {exerciseProgress.current}/{exerciseProgress.target} {exerciseProgress.unit}
+                  </Text>
+                </View>
+              </View>
+            )}
+            {sleepProgress && (
+              <View style={[styles.specializedCard, { borderColor: 'rgba(139, 92, 246, 0.3)' }]}>
+                <Ionicons name="moon" size={24} color="#8B5CF6" />
+                <View>
+                  <Text style={styles.specializedTitle}>Sleep</Text>
+                  <Text style={styles.specializedValue}>
+                    {sleepProgress.current}/{sleepProgress.target} {sleepProgress.unit}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        )}
 
         {/* Progress */}
         {totalHabits > 0 && (
@@ -430,6 +548,68 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  moodTrendContainer: {
+    backgroundColor: Colors.backgroundCard,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  trendTitle: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    fontWeight: FontWeight.bold,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  trendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    height: 60,
+  },
+  trendPoint: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  trendBar: {
+    width: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.border,
+  },
+  trendDay: {
+    fontSize: 9,
+    color: Colors.textMuted,
+    marginTop: 6,
+  },
+  specializedRow: {
+    paddingRight: Spacing.lg,
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
+  },
+  specializedCard: {
+    backgroundColor: Colors.backgroundCard,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderWidth: 1,
+    minWidth: 160,
+  },
+  specializedTitle: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    fontWeight: FontWeight.bold,
+    textTransform: 'uppercase',
+  },
+  specializedValue: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    fontWeight: FontWeight.bold,
     marginTop: 2,
   },
   progressCard: {

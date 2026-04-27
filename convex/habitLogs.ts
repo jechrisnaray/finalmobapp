@@ -69,8 +69,44 @@ export const toggleHabitLog = mutation({
         userId: args.userId,
         date: args.date,
         isDone: true,
+        value: 1, // Default value for non-numeric habits or first increment
       });
       return { action: 'checked', logId };
+    }
+  },
+});
+
+export const updateHabitValue = mutation({
+  args: {
+    habitId: v.id('habits'),
+    userId: v.id('users'),
+    date: v.string(),
+    value: v.number(),
+    isDone: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('habit_progress')
+      .withIndex('by_habit_and_date', (q) =>
+        q.eq('habitId', args.habitId).eq('date', args.date)
+      )
+      .filter((q) => q.eq(q.field('userId'), args.userId))
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value: args.value,
+        isDone: args.isDone,
+      });
+      return existing._id;
+    } else {
+      return await ctx.db.insert('habit_progress', {
+        habitId: args.habitId,
+        userId: args.userId,
+        date: args.date,
+        isDone: args.isDone,
+        value: args.value,
+      });
     }
   },
 });

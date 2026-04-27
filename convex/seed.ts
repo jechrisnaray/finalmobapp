@@ -8,21 +8,21 @@ export const seedData = mutation({
 
     // 1. Create 15 Habits
     const habitTitles = [
-      { title: 'Olahraga Pagi', color: '#EF4444', freq: 'daily' },
-      { title: 'Baca Buku 15 Menit', color: '#F59E0B', freq: 'daily' },
-      { title: 'Meditasi', color: '#10B981', freq: 'daily' },
-      { title: 'Minum Air 2L', color: '#3B82F6', freq: 'daily' },
-      { title: 'Belajar Coding', color: '#6366F1', freq: 'daily' },
-      { title: 'Jurnal Harian', color: '#8B5CF6', freq: 'purple' },
-      { title: 'Tidur Sebelum Jam 11', color: '#1E293B', freq: 'daily' },
-      { title: 'Makan Sayur', color: '#059669', freq: 'daily' },
-      { title: 'Latihan Pernapasan', color: '#06B6D4', freq: 'daily' },
-      { title: 'No Social Media 1 Jam', color: '#F43F5E', freq: 'daily' },
-      { title: 'Bersih-bersih Kamar', color: '#D946EF', freq: 'weekly' },
-      { title: 'Review Keuangan', color: '#FACC15', freq: 'weekly' },
-      { title: 'Telpon Orang Tua', color: '#FB923C', freq: 'weekly' },
-      { title: 'Jalan Santai', color: '#4ADE80', freq: 'daily' },
-      { title: 'Skincare Routine', color: '#FBCFE8', freq: 'daily' },
+      { title: 'Olahraga Pagi', color: '#EF4444', freq: 'daily', type: 'exercise', target: 30, unit: 'menit' },
+      { title: 'Baca Buku 15 Menit', color: '#F59E0B', freq: 'daily', type: 'general' },
+      { title: 'Meditasi', color: '#10B981', freq: 'daily', type: 'general' },
+      { title: 'Minum Air 2L', color: '#3B82F6', freq: 'daily', type: 'water', target: 8, unit: 'gelas' },
+      { title: 'Belajar Coding', color: '#6366F1', freq: 'daily', type: 'general' },
+      { title: 'Jurnal Harian', color: '#8B5CF6', freq: 'weekly', type: 'general' },
+      { title: 'Tidur Sebelum Jam 11', color: '#1E293B', freq: 'daily', type: 'sleep', target: 8, unit: 'jam' },
+      { title: 'Makan Sayur', color: '#059669', freq: 'daily', type: 'general' },
+      { title: 'Latihan Pernapasan', color: '#06B6D4', freq: 'daily', type: 'general' },
+      { title: 'No Social Media 1 Jam', color: '#F43F5E', freq: 'daily', type: 'general' },
+      { title: 'Bersih-bersih Kamar', color: '#D946EF', freq: 'weekly', type: 'general' },
+      { title: 'Review Keuangan', color: '#FACC15', freq: 'weekly', type: 'general' },
+      { title: 'Telpon Orang Tua', color: '#FB923C', freq: 'weekly', type: 'general' },
+      { title: 'Jalan Santai', color: '#4ADE80', freq: 'daily', type: 'exercise', target: 20, unit: 'menit' },
+      { title: 'Skincare Routine', color: '#FBCFE8', freq: 'daily', type: 'general' },
     ];
 
     const habitIds = [];
@@ -30,6 +30,9 @@ export const seedData = mutation({
       const id = await ctx.db.insert('habits', {
         userId,
         title: h.title,
+        type: h.type as any,
+        targetValue: (h as any).target,
+        unit: (h as any).unit,
         color: h.color,
         frequency: h.freq as any,
         createdAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
@@ -52,6 +55,7 @@ export const seedData = mutation({
             habitId,
             date: dateStr,
             isDone: true,
+            value: 1,
           });
         }
       }

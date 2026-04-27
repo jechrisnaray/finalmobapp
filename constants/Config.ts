@@ -3,9 +3,10 @@ export const Config = {
   APP_NAME: 'HealthySteps',
   APP_TAGLINE: 'Build Healthy Habits, One Step at a Time',
 
-  // Mood emoji mapping
+  // Mood mapping
   MOOD_EMOJIS: ['😢', '😕', '😐', '🙂', '😄'] as const,
   MOOD_LABELS: ['Sangat Buruk', 'Buruk', 'Biasa', 'Baik', 'Sangat Baik'] as const,
+  MOOD_COLORS: ['#F87171', '#FB923C', '#94A3B8', '#60A5FA', '#34D399'] as const,
 
   // Habit frequencies
   HABIT_FREQUENCIES: ['daily', 'weekly', 'custom'] as const,

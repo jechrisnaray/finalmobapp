@@ -30,7 +30,17 @@ export default function AddHabitScreen() {
   const [frequency, setFrequency] = useState<Frequency>('daily');
   const [selectedColor, setSelectedColor] = useState<string>(Config.HABIT_COLORS[0]);
   const [customDays, setCustomDays] = useState<number[]>([]);
+  const [type, setType] = useState<'general' | 'water' | 'exercise' | 'sleep'>('general');
+  const [targetValue, setTargetValue] = useState('8');
+  const [unit, setUnit] = useState('gelas');
   const [isLoading, setIsLoading] = useState(false);
+
+  const habitTypes: { value: typeof type; label: string; icon: any; unit: string; defaultTarget: string }[] = [
+    { value: 'general', label: 'Umum', icon: 'list', unit: '', defaultTarget: '' },
+    { value: 'water', label: 'Air', icon: 'water', unit: 'gelas', defaultTarget: '8' },
+    { value: 'exercise', label: 'Olahraga', icon: 'fitness', unit: 'menit', defaultTarget: '30' },
+    { value: 'sleep', label: 'Tidur', icon: 'moon', unit: 'jam', defaultTarget: '8' },
+  ];
 
   const frequencyOptions: { value: Frequency; label: string; icon: any; desc: string }[] = [
     { value: 'daily', label: 'Harian', icon: 'calendar-outline', desc: 'Setiap hari' },
@@ -42,6 +52,18 @@ export default function AddHabitScreen() {
     setCustomDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     );
+  };
+
+  const handleTypeChange = (newType: typeof type) => {
+    setType(newType);
+    const config = habitTypes.find(t => t.value === newType);
+    if (config) {
+      setUnit(config.unit);
+      setTargetValue(config.defaultTarget);
+      if (newType === 'water' && !title) setTitle('Minum Air Putih');
+      if (newType === 'exercise' && !title) setTitle('Olahraga Harian');
+      if (newType === 'sleep' && !title) setTitle('Istirahat Cukup');
+    }
   };
 
   const handleSubmit = async () => {
@@ -63,6 +85,9 @@ export default function AddHabitScreen() {
       await createHabit({
         userId: user.userId,
         title: title.trim(),
+        type,
+        targetValue: type !== 'general' ? parseInt(targetValue) : undefined,
+        unit: type !== 'general' ? unit : undefined,
         frequency,
         color: selectedColor,
         customDays: frequency === 'custom' ? customDays : undefined,
@@ -113,6 +138,33 @@ export default function AddHabitScreen() {
           </View>
         </View>
 
+        {/* Category Picker */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Kategori Habit</Text>
+          <View style={styles.typeRow}>
+            {habitTypes.map((t) => (
+              <TouchableOpacity
+                key={t.value}
+                style={[
+                  styles.typeOption,
+                  type === t.value && { backgroundColor: `${selectedColor}20`, borderColor: selectedColor }
+                ]}
+                onPress={() => handleTypeChange(t.value)}
+                activeOpacity={0.7}
+              >
+                <Ionicons 
+                  name={t.icon} 
+                  size={20} 
+                  color={type === t.value ? selectedColor : Colors.textMuted} 
+                />
+                <Text style={[styles.typeLabel, type === t.value && { color: selectedColor }]}>
+                  {t.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* Title Input */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Nama Habit</Text>
@@ -123,10 +175,28 @@ export default function AddHabitScreen() {
             placeholder="Contoh: Minum 8 gelas air"
             placeholderTextColor={Colors.textMuted}
             maxLength={50}
-            autoFocus
           />
           <Text style={styles.charCount}>{title.length}/50</Text>
         </View>
+
+        {/* Goal Input (Numeric) — only for specialized types */}
+        {type !== 'general' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Target Harian</Text>
+            <View style={styles.goalRow}>
+              <TextInput
+                style={[styles.input, { flex: 1, textAlign: 'center' }]}
+                value={targetValue}
+                onChangeText={setTargetValue}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+              <View style={styles.unitBox}>
+                <Text style={styles.unitText}>{unit}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Frequency */}
         <View style={styles.section}>
@@ -345,6 +415,46 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: Spacing.xs,
     fontWeight: FontWeight.medium,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  typeOption: {
+    flex: 1,
+    minWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.backgroundCard,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  typeLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: Colors.textSecondary,
+  },
+  goalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  unitBox: {
+    backgroundColor: Colors.backgroundElevated,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  unitText: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.bold,
   },
   frequencyRow: { flexDirection: 'row', gap: Spacing.sm },
   frequencyOption: {

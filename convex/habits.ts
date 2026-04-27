@@ -22,6 +22,14 @@ export const createHabit = mutation({
   args: {
     userId: v.id('users'),
     title: v.string(),
+    type: v.union(
+      v.literal('general'),
+      v.literal('water'),
+      v.literal('exercise'),
+      v.literal('sleep')
+    ),
+    targetValue: v.optional(v.number()),
+    unit: v.optional(v.string()),
     frequency: v.union(
       v.literal('daily'),
       v.literal('weekly'),
@@ -34,6 +42,9 @@ export const createHabit = mutation({
     const habitId = await ctx.db.insert('habits', {
       userId: args.userId,
       title: args.title,
+      type: args.type,
+      targetValue: args.targetValue,
+      unit: args.unit,
       frequency: args.frequency,
       color: args.color,
       createdAt: Date.now(),
@@ -47,6 +58,14 @@ export const updateHabit = mutation({
   args: {
     habitId: v.id('habits'),
     title: v.optional(v.string()),
+    type: v.optional(v.union(
+      v.literal('general'),
+      v.literal('water'),
+      v.literal('exercise'),
+      v.literal('sleep')
+    )),
+    targetValue: v.optional(v.number()),
+    unit: v.optional(v.string()),
     frequency: v.optional(
       v.union(
         v.literal('daily'),
@@ -61,6 +80,9 @@ export const updateHabit = mutation({
     const { habitId, ...updates } = args;
     const cleanUpdates: Record<string, any> = {};
     if (updates.title !== undefined) cleanUpdates.title = updates.title;
+    if (updates.type !== undefined) cleanUpdates.type = updates.type;
+    if (updates.targetValue !== undefined) cleanUpdates.targetValue = updates.targetValue;
+    if (updates.unit !== undefined) cleanUpdates.unit = updates.unit;
     if (updates.frequency !== undefined) cleanUpdates.frequency = updates.frequency;
     if (updates.color !== undefined) cleanUpdates.color = updates.color;
     if (updates.customDays !== undefined) cleanUpdates.customDays = updates.customDays;

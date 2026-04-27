@@ -90,6 +90,75 @@ export const register = mutation({
       createdAt: Date.now(),
     });
 
+    // 🚀 AUTO-SEED: Create initial habits and 3 days of progress
+    const initialHabits = [
+      { title: 'Minum Air Putih', type: 'water', target: 8, unit: 'gelas', color: '#3B82F6', freq: 'daily' },
+      { title: 'Istirahat Cukup', type: 'sleep', target: 8, unit: 'jam', color: '#8B5CF6', freq: 'daily' },
+      { title: 'Olahraga (Sen, Rab, Jum)', type: 'exercise', target: 30, unit: 'menit', color: '#10B981', freq: 'custom', days: [1, 3, 5] },
+      { title: 'Baca Buku (Sel, Kam)', type: 'general', color: '#F59E0B', freq: 'custom', days: [2, 4] },
+      { title: 'Makan Sayur', type: 'general', color: '#EF4444', freq: 'daily' },
+      { title: 'Review Mingguan', type: 'general', color: '#6366F1', freq: 'weekly' }, // Mingguan defaultnya hari ini/Minggu
+    ];
+
+    const habitIds = [];
+    for (const h of initialHabits) {
+      const id = await ctx.db.insert('habits', {
+        userId,
+        title: h.title,
+        type: h.type as any ?? 'general',
+        targetValue: (h as any).target,
+        unit: (h as any).unit,
+        color: h.color,
+        frequency: h.freq as any,
+        customDays: (h as any).days,
+        createdAt: Date.now(),
+      });
+      habitIds.push(id);
+    }
+
+    // Create 3 days of logs
+    const today = new Date();
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayIndex = d.getDay(); // 0=Sun, 1=Mon, ...
+
+      for (let j = 0; j < habitIds.length; j++) {
+        const habitId = habitIds[j];
+        const hConfig = initialHabits[j];
+
+        // Check if habit is scheduled for this day
+        let isScheduled = true;
+        if (hConfig.freq === 'weekly') isScheduled = dayIndex === 0; // Sunday
+        if (hConfig.freq === 'custom' && hConfig.days) isScheduled = hConfig.days.includes(dayIndex);
+
+        if (isScheduled) {
+          await ctx.db.insert('habit_progress', {
+            userId,
+            habitId,
+            date: dateStr,
+            isDone: Math.random() > 0.3,
+            value: hConfig.type === 'general' ? 1 : Math.floor(Math.random() * 5) + 3,
+          });
+        }
+      }
+      
+      // Add mood log (only if not already seeded for this date)
+      const existingMood = await ctx.db
+        .query('moodLogs')
+        .withIndex('by_user_and_date', (q: any) => q.eq('userId', userId).eq('date', dateStr))
+        .first();
+      
+      if (!existingMood) {
+        await ctx.db.insert('moodLogs', {
+          userId,
+          mood: Math.floor(Math.random() * 3) + 3,
+          date: dateStr,
+        });
+      }
+    }
+
     // Create session (30 days expiry)
     const token = generateToken();
     await ctx.db.insert('sessions', {

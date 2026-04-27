@@ -9,12 +9,13 @@ type TabIconOutline = 'home-outline' | 'checkmark-circle-outline' | 'happy-outli
 const TAB_CONFIG: {
   name: string;
   title: string;
-  iconFocused: TabIconName;
-  iconDefault: TabIconOutline;
+  iconFocused: TabIconName | 'barbell';
+  iconDefault: TabIconOutline | 'barbell-outline';
 }[] = [
   { name: 'index', title: 'Home', iconFocused: 'home', iconDefault: 'home-outline' },
   { name: 'habits', title: 'Habits', iconFocused: 'checkmark-circle', iconDefault: 'checkmark-circle-outline' },
   { name: 'mood', title: 'Mood', iconFocused: 'happy', iconDefault: 'happy-outline' },
+  { name: 'workout-guide', title: 'Guide', iconFocused: 'barbell', iconDefault: 'barbell-outline' },
   { name: 'profile', title: 'Profil', iconFocused: 'person', iconDefault: 'person-outline' },
 ];
 
